@@ -491,14 +491,39 @@ function calculate() {
     ? getWaterFee(newWaterItems.map(d => d.newOddsRaw))
     : null;
 
-  // 排名标签：所有差值从大到小排，最大的"非常奈斯"，第二"中等"，最小"小老弟"
+  // 排名标签：两正一负→大正/小正/负数，两负一正→正数/大负/小负，同号则都带大小
   const diffItems = items.filter(d => d.val !== null);
   diffItems.sort((a, b) => b.val - a.val);  // 从大到小排序
 
+  const positives = diffItems.filter(d => d.val > 0);
+  const negatives = diffItems.filter(d => d.val < 0);
+
   const tags = {};
-  if (diffItems.length >= 1) tags[diffItems[0].label] = { text: '非常奈斯！', cls: 'tag-great' };
-  if (diffItems.length >= 2) tags[diffItems[1].label] = { text: '中等', cls: 'tag-mid' };
-  if (diffItems.length >= 3) tags[diffItems[2].label] = { text: '小老弟', cls: 'tag-low' };
+  if (positives.length === 2 && negatives.length === 1) {
+    // 两正一负
+    tags[positives[0].label] = { text: '大正', cls: 'tag-great' };
+    tags[positives[1].label] = { text: '小正', cls: 'tag-mid' };
+    tags[negatives[0].label] = { text: '负数', cls: 'tag-low' };
+  } else if (positives.length === 1 && negatives.length === 2) {
+    // 两负一正
+    tags[positives[0].label] = { text: '正数', cls: 'tag-great' };
+    tags[negatives[0].label] = { text: '小负', cls: 'tag-mid' };
+    tags[negatives[1].label] = { text: '大负', cls: 'tag-low' };
+  } else {
+    // 其他情况：全正或全负或一正一负
+    if (positives.length >= 1) tags[positives[0].label] = { text: '大正', cls: 'tag-great' };
+    if (positives.length >= 2) {
+      for (let i = 1; i < positives.length; i++) {
+        tags[positives[i].label] = { text: '小正', cls: 'tag-mid' };
+      }
+    }
+    if (negatives.length >= 1) tags[negatives[negatives.length-1].label] = { text: '大负', cls: 'tag-low' };
+    if (negatives.length >= 2) {
+      for (let i = 0; i < negatives.length - 1; i++) {
+        tags[negatives[i].label] = { text: '小负', cls: 'tag-mid' };
+      }
+    }
+  }
 
   function dc(v) {
     if (v === null) return 'zero';
